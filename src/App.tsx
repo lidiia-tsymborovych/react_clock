@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './App.scss';
 import { Clock } from './components/Clock';
 
@@ -8,67 +8,56 @@ function getRandomName(): string {
   return `Clock-${value}`;
 }
 
-type AppState = {
-  hasClock: boolean;
-  clockName: string;
-};
+export const App: React.FC = () => {
+  const [hasClock, setHasClock] = useState(true);
+  const [clockName, setClockName] = useState('Clock-0');
+  const prevClockName = useRef(clockName);
 
-export class App extends React.Component<{}, AppState> {
-  nameTimerId?: number;
-
-  oldName = 'Clock-0';
-
-  state: AppState = {
-    hasClock: true,
-    clockName: 'Clock-0',
-  };
-
-  componentDidMount() {
-    document.addEventListener('contextmenu', this.onRightClick);
-    document.addEventListener('click', this.onLeftClick);
-
-    this.nameTimerId = window.setInterval(() => {
-      const newName = getRandomName();
-
-      this.setState(({ clockName }) => {
-        this.oldName = clockName;
-
-        return { clockName: newName };
-      });
-    }, 3300);
-  }
-
-  componentWillUnmount() {
-    document.removeEventListener('contextmenu', this.onRightClick);
-    document.removeEventListener('click', this.onLeftClick);
-
-    if (this.nameTimerId) {
-      clearInterval(this.nameTimerId);
-    }
-  }
-
-  componentDidUpdate(_: {}, prevState: AppState) {
-    if (prevState.clockName !== this.state.clockName && this.state.hasClock) {
-      // eslint-disable-next-line no-console
-      console.warn(`Renamed from ${this.oldName} to ${this.state.clockName}`);
-    }
-  }
-
-  onRightClick = (event: MouseEvent) => {
+  const onRightClick = (event: MouseEvent) => {
     event.preventDefault();
-    this.setState({ hasClock: false });
+    setHasClock(false);
   };
 
-  onLeftClick = () => {
-    this.setState({ hasClock: true });
+  const onLeftClick = () => {
+    setHasClock(true);
   };
 
-  render() {
-    return (
-      <div className="App">
-        <h1>React clock</h1>
-        {this.state.hasClock && <Clock name={this.state.clockName} />}
-      </div>
-    );
-  }
-}
+  useEffect(() => {
+    document.addEventListener('contextmenu', onRightClick);
+    document.addEventListener('click', onLeftClick);
+
+    return () => {
+      document.removeEventListener('contextmenu', onRightClick);
+      document.removeEventListener('click', onLeftClick);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasClock) {
+      return;
+    }
+
+    const timerId = window.setInterval(() => {
+      setClockName(() => getRandomName());
+    }, 3300);
+
+    return () => clearInterval(timerId);
+  }, [hasClock]);
+
+  useEffect(() => {
+    if (prevClockName.current === clockName) {
+      return;
+    }
+
+    // eslint-disable-next-line no-console
+    console.warn(`Renamed from ${prevClockName.current} to ${clockName}`);
+    prevClockName.current = clockName;
+  }, [clockName]);
+
+  return (
+    <div className="App">
+      <h1>React clock</h1>
+      {hasClock && <Clock name={clockName} />}
+    </div>
+  );
+};

@@ -1,38 +1,28 @@
-import { Component } from 'react';
+import React, { useEffect, useState } from 'react';
 
 type ClockProps = { name: string };
 
-type ClockState = { time: string };
+export const Clock: React.FC<ClockProps> = ({ name }) => {
+  const time = new Date().toUTCString().slice(-12, -4);
 
-export class Clock extends Component<ClockProps, ClockState> {
-  timerId?: number;
+  const [currentTime, setCurrentTime] = useState(time);
 
-  state = {
-    time: new Date().toUTCString().slice(-12, -4),
-  };
+  useEffect(() => {
+    const timerId = window.setInterval(() => {
+      const newTime = new Date().toUTCString().slice(-12, -4);
 
-  componentDidMount() {
-    this.timerId = window.setInterval(() => {
-      const time = new Date().toUTCString().slice(-12, -4);
-
-      this.setState({ time });
       // eslint-disable-next-line no-console
-      console.log(time);
+      console.log(newTime);
+      setCurrentTime(newTime);
     }, 1000);
-  }
 
-  componentWillUnmount() {
-    if (this.timerId) {
-      clearInterval(this.timerId);
-    }
-  }
+    return () => clearInterval(timerId);
+  }, []);
 
-  render() {
-    return (
-      <div className="Clock">
-        <strong className="Clock__name">{this.props.name}</strong> time is{' '}
-        <span className="Clock__time">{this.state.time}</span>
-      </div>
-    );
-  }
-}
+  return (
+    <div className="Clock">
+      <strong className="Clock__name">{name}</strong> time is{' '}
+      <span className="Clock__time">{currentTime}</span>
+    </div>
+  );
+};
